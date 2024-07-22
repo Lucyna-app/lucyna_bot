@@ -25,5 +25,5 @@ async def on_message(message):
         await message.channel.send("Drop")
 
 
-botToken = os.getenv("bot_token")
+botToken = os.getenv("LUCYNA_BOT_TOKEN")
 client.run(botToken)
