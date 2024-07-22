@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "lucyna-bot"
+version = "0.1.0"
+description = ""
+authors = ["Kiba <munyontodd@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+discord-py = "^2.4.0"
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.5.4"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
