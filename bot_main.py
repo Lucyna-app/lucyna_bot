@@ -32,10 +32,10 @@ async def on_message(message):
 
 
 class RollView(discord.ui.View):
-    def __init__(self, api_url, art_uuids):
+    def __init__(self, api_url, art_uuid4s):
         super().__init__(timeout=60)
         self.api_url = api_url
-        self.art_uuids = art_uuids
+        self.art_uuid4s = art_uuid4s
 
     @discord.ui.button(label="1", style=ButtonStyle.primary, custom_id="button1")
     async def button1_callback(
@@ -64,7 +64,7 @@ class RollView(discord.ui.View):
                 claim_url,
                 json={
                     "user_id": str(interaction.user.id),
-                    "art_uuid": self.art_uuids[index],
+                    "art_uuid4": self.art_uuid4s[index],
                 },
             ) as response:
                 if response.status == 200:
@@ -74,7 +74,7 @@ class RollView(discord.ui.View):
                     await interaction.response.edit_message(view=self)
                     result = await response.json()
                     await interaction.followup.send(
-                        f"You claimed a card ^^ - Card UUID: {result['card_uuid']}",
+                        f"You claimed a card ^^ - Card UUID4: {result['card_uuid4']}",
                         ephemeral=True,
                     )
                 else:
@@ -93,12 +93,12 @@ async def roll_command(ctx):
                 if response.status == 200:
                     response_data = await response.json()
                     image_data = base64.b64decode(response_data["image"])
-                    art_uuids = response_data["art_uuids"]
+                    art_uuid4s = response_data["art_uuid4s"]
 
                     image_file = discord.File(
                         io.BytesIO(image_data), filename="roll.png"
                     )
-                    view = RollView(roll_url, art_uuids)
+                    view = RollView(roll_url, art_uuid4s)
                     await ctx.message.reply(
                         f"{ctx.author.mention} rolled some cards ^^",
                         file=image_file,
@@ -114,7 +114,7 @@ async def roll_command(ctx):
 
 
 # Cooldown dictionary, tech debt for later, implement into database
-collection_cooldowns = {}
+# collection_cooldowns = {}
 
 
 class CollectionView(discord.ui.View):
@@ -200,20 +200,20 @@ def create_collection_embed(data, page):
 
 
 @client.command(name="c", aliases=["collection"])
-@commands.cooldown(1, 60, commands.BucketType.user)
+# @commands.cooldown(1, 60, commands.BucketType.user)
 async def collection_command(ctx):
     user_id = str(ctx.author.id)
 
     # Check cooldown
-    if user_id in collection_cooldowns:
-        remaining_time = collection_cooldowns[user_id] - datetime.now()
-        if remaining_time > timedelta():
-            await ctx.send(
-                f"You can use this command again {remaining_time.seconds} seconds"
-            )
-            return
+    # if user_id in collection_cooldowns:
+    #     remaining_time = collection_cooldowns[user_id] - datetime.now()
+    #     if remaining_time > timedelta():
+    #         await ctx.send(
+    #             f"You can use this command again {remaining_time.seconds} seconds"
+    #         )
+    #         return
 
-    collection_cooldowns[user_id] = datetime.now() + timedelta(minutes=1)
+    # collection_cooldowns[user_id] = datetime.now() + timedelta(minutes=1)
 
     api_url = "http://127.0.0.1:8000/bot"
 
