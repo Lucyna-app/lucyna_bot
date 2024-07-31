@@ -74,7 +74,7 @@ class RollView(discord.ui.View):
                     await interaction.response.edit_message(view=self)
                     result = await response.json()
                     await interaction.followup.send(
-                        f"You claimed a card ^^ - Card UUID4: {result['card_uuid4']}",
+                        f"You claimed a card ^^",
                         ephemeral=True,
                     )
                 else:
@@ -83,7 +83,8 @@ class RollView(discord.ui.View):
                     )
 
 
-@client.command(name="r", aliases=["roll"])
+@client.command(name="r", aliases=["roll", "R", "ROLL"])
+@commands.cooldown(1, 120, commands.BucketType.user)
 async def roll_command(ctx):
     roll_url = "http://127.0.0.1:8000/bot/commands/roll"
 
@@ -113,8 +114,24 @@ async def roll_command(ctx):
         await ctx.message.reply("An error occurred while processing your request.")
 
 
-# Cooldown dictionary, tech debt for later, implement into database
-# collection_cooldowns = {}
+@roll_command.error
+async def roll_command_error(ctx, error):
+    if isinstance(error, commands.CommandOnCooldown):
+        # Calculate remaining time
+        minutes, seconds = divmod(error.retry_after, 60)
+        hours, minutes = divmod(minutes, 60)
+
+        # Formatting time string
+        time_str = ""
+        if hours > 0:
+            time_str += f"**{int(hours)}h** "
+        if minutes > 0:
+            time_str += f"**{int(minutes)}m** "
+        time_str += f"**{int(seconds)}s**"
+
+        await ctx.send(f"Woah there. You can roll again in {time_str}.")
+    else:
+        await ctx.send(f"An error occurred: {str(error)}")
 
 
 class CollectionView(discord.ui.View):
@@ -192,7 +209,8 @@ def create_collection_embed(data, page):
     for card in data["cards"]:
         embed.add_field(
             name=f"{card['character_name']} ({card['series']})",
-            value=f"Rarity: {card['rarity']}\nClaimed: {card['claim_time']}\nCode: {card['custom_code'] or 'N/A'}",
+            # value=f"Rarity: {card['rarity']}\nClaimed: {card['claim_time']}\nCode: {card['custom_code'] or 'N/A'}",
+            value="",
             inline=False,
         )
 
@@ -200,20 +218,8 @@ def create_collection_embed(data, page):
 
 
 @client.command(name="c", aliases=["collection"])
-# @commands.cooldown(1, 60, commands.BucketType.user)
 async def collection_command(ctx):
     user_id = str(ctx.author.id)
-
-    # Check cooldown
-    # if user_id in collection_cooldowns:
-    #     remaining_time = collection_cooldowns[user_id] - datetime.now()
-    #     if remaining_time > timedelta():
-    #         await ctx.send(
-    #             f"You can use this command again {remaining_time.seconds} seconds"
-    #         )
-    #         return
-
-    # collection_cooldowns[user_id] = datetime.now() + timedelta(minutes=1)
 
     api_url = "http://127.0.0.1:8000/bot"
 
