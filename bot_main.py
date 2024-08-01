@@ -32,10 +32,15 @@ async def on_message(message):
 
 
 class RollView(discord.ui.View):
-    def __init__(self, api_url, art_uuid4s):
+    def __init__(self, api_url, art_uuid4s, author):
         super().__init__(timeout=60)
         self.api_url = api_url
         self.art_uuid4s = art_uuid4s
+        self.author = author
+        self.has_claimed = False
+
+    async def interaction_check(self, interaction: Interaction) -> bool:
+        return interaction.user.id == self.author.id
 
     @discord.ui.button(label="1", style=ButtonStyle.primary, custom_id="button1")
     async def button1_callback(
@@ -58,6 +63,12 @@ class RollView(discord.ui.View):
     async def button_click(
         self, interaction: Interaction, button: discord.ui.Button, index: int
     ):
+        if self.has_claimed:
+            await interaction.response.send_message(
+                "You've already claimed a card.", ephemeral=True
+            )
+            return
+
         claim_url = f"{self.api_url}/claim"
         async with aiohttp.ClientSession() as session:
             async with session.post(
@@ -68,9 +79,15 @@ class RollView(discord.ui.View):
                 },
             ) as response:
                 if response.status == 200:
+                    self.has_claimed = True
                     button.style = ButtonStyle.green
                     button.disabled = True
                     button.label = "Claimed"
+
+                    # Disable all buttons
+                    for child in self.children:
+                        child.disabled = True
+
                     await interaction.response.edit_message(view=self)
                     result = await response.json()
                     await interaction.followup.send(
@@ -99,7 +116,7 @@ async def roll_command(ctx):
                     image_file = discord.File(
                         io.BytesIO(image_data), filename="roll.png"
                     )
-                    view = RollView(roll_url, art_uuid4s)
+                    view = RollView(roll_url, art_uuid4s, ctx.author)
                     await ctx.message.reply(
                         f"{ctx.author.mention} rolled some cards ^^",
                         file=image_file,
